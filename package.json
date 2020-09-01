@@ -10,10 +10,27 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:ewiv.helloWorld"
+    "onView:mwRecentChange"
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "configuration": {
+      "title": "ewiv",
+      "properties": {
+        "ewiv.sites": {
+          "type": "array",
+          "default": [
+            {
+              "site": "Mooncell",
+              "index": "https://fgo.wiki/index.php",
+              "api": "https://fgo.wiki/api.php",
+              "rcNamespace": "",
+              "rcType": "edit|new|external|categorize"
+            }
+          ]
+        }
+      }
+    },
     "commands": [
       {
         "command": "ewiv.helloWorld",
@@ -26,8 +43,22 @@
       },
       {
         "command": "ewiv.add_site",
-        "title":"add site",
-        "icon":"$(add)"
+        "title": "add site",
+        "icon": "$(add)"
+      },
+      {
+        "command": "ewiv.diff_source",
+        "title": "diff source",
+        "icon": "$(diff)"
+      },
+      {
+        "command": "ewiv.diff_in_browser",
+        "title": "open in browser",
+        "icon": "$(remote-explorer)"
+      },
+      {
+        "command": "ewiv.view_source",
+        "title":"view source"
       }
     ],
     "viewsContainers": {
@@ -57,11 +88,24 @@
       "view/title": [
         {
           "command": "ewiv.refresh",
-          "group": "navigation"
+          "group": "navigation",
+          "when": ""
         },
         {
           "command": "ewiv.add_site",
           "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "ewiv.diff_source",
+          "group": "inline",
+          "when": "viewItem == ewiv:change"
+        },
+        {
+          "command": "ewiv.diff_in_browser",
+          "group": "inline",
+          "when": "viewItem == ewiv:change"
         }
       ]
     }
@@ -70,21 +114,28 @@
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "lint": "eslint src --ext ts",
+    "fix": "eslint --fix src --ext ts",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "test": "node ./out/test/runTest.js"
   },
   "devDependencies": {
-    "@types/vscode": "^1.48.0",
     "@types/glob": "^7.1.3",
     "@types/mocha": "^8.0.0",
     "@types/node": "^14.0.27",
-    "eslint": "^7.6.0",
-    "@typescript-eslint/eslint-plugin": "^3.8.0",
+    "@types/vscode": "^1.48.0",
+    "@typescript-eslint/eslint-plugin": "^3.10.1",
     "@typescript-eslint/parser": "^3.8.0",
+    "eslint": "^7.6.0",
+    "eslint-config-prettier": "^6.11.0",
+    "eslint-plugin-prettier": "^3.1.4",
     "glob": "^7.1.6",
     "mocha": "^8.0.1",
+    "prettier": "^2.1.1",
     "typescript": "^3.8.3",
     "vscode-test": "^1.4.0"
+  },
+  "dependencies": {
+    "axios": "^0.20.0"
   }
 }
