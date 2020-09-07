@@ -21,7 +21,7 @@ const historyProvider = new (class implements TextDocumentContentProvider {
       return "";
     }
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    return (await getSource(site!.index, uri.query, undefined, uri.fragment))
+    return (await getSource(site!.api, undefined, undefined, uri.fragment))
       .content;
   }
 })();
@@ -91,14 +91,17 @@ export class Commands {
         return;
       }
     }
-    let uri = Uri.parse(`ewivFS:/${siteName}/${pageID}`);
-    if (!this.ewivFS?.has(uri)) {
+    let uri = Uri.parse(`ewivFS:/${siteName}/${title}`);
+    if (oldID) {
+      uri = uri.with({ query: oldID });
+    }
+    if (!oldID || !this.ewivFS?.has(uri)) {
       const source = await getSource(api, title, pageID, oldID);
       pageID = source.pageID;
       title = source.title;
       oldID = source.oldID;
       const content = source.content;
-      uri = Uri.parse(`ewivFS:/${siteName}/${pageID}#${title}`);
+      uri = Uri.parse(`ewivFS:/${siteName}/${title}?${oldID}`);
       this.ewivFS?.createFile(uri, Buffer.from(content));
     }
     commands.executeCommand("vscode.open", uri);

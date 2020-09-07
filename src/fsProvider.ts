@@ -11,46 +11,69 @@ import {
   FileChangeType,
 } from "vscode";
 import * as path from "path";
-export class File implements FileStat {
-  type: FileType;
+export class NODE implements FileStat {
+  // type: FileType;
   ctime: number;
   mtime: number;
-  size: number;
+  // size: number;
+
   data: Uint8Array;
   name: string;
-  constructor(name: string) {
-    this.type = FileType.File;
+  initType: FileType | undefined;
+  // 子页面
+  children: Map<string, NODE>;
+  // 历史版本
+  history: Map<number, NODE>;
+
+  constructor(name: string, type?: FileType) {
+    // this.type = FileType.Directory;
     this.ctime = Date.now();
     this.mtime = Date.now();
-    this.size = 0;
+    this.initType = type;
+    // this.size = 0;
+
     this.name = name;
+    this.children = new Map();
+    this.history = new Map();
     this.data = Buffer.from("");
   }
-}
-export class Directory implements FileStat {
-  type: FileType;
-  ctime: number;
-  mtime: number;
-  size: number;
-
-  name: string;
-  entries: Map<string, File | Directory>;
-
-  constructor(name: string) {
-    this.type = FileType.Directory;
-    this.ctime = Date.now();
-    this.mtime = Date.now();
-    this.size = 0;
-    this.name = name;
-    this.entries = new Map();
+  public get type(): FileType {
+    if (this.ctime === this.mtime && this.initType) {
+      return this.initType;
+    }
+    if (
+      (this.history.size === 1 || this.history.size === 0) &&
+      this.children.size === 0
+    ) {
+      return FileType.File;
+    } else {
+      return FileType.Directory;
+    }
+  }
+  public get size(): number {
+    let result = 0;
+    if (this.type === FileType.File) {
+      if (this.history.size === 0) {
+        // 这个节点存了具体wikitext
+        result = this.data.length;
+      } else {
+        // 这个节点是因为只有一个历史版本 所以算FILE
+        for (const k of this.history.keys()) {
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          result = this.history.get(k)!.size;
+        }
+      }
+    } else {
+      result = this.children.size;
+    }
+    return result;
   }
 }
-export type Entry = File | Directory;
 export class EwivFS implements FileSystemProvider {
   constructor() {
     console.log("init");
   }
-  root = new Directory("");
+  root = new NODE("");
   watch(
     uri: Uri,
     options: { recursive: boolean; excludes: string[] }
@@ -68,7 +91,7 @@ export class EwivFS implements FileSystemProvider {
   readDirectory(uri: Uri): [string, FileType][] {
     const entry = this._lookupDirectory(uri, false);
     const result: [string, FileType][] = [];
-    for (const [name, child] of entry.entries) {
+    for (const [name, child] of entry.children) {
       result.push([name, child.type]);
     }
     return result;
@@ -80,10 +103,9 @@ export class EwivFS implements FileSystemProvider {
     if (!parent) {
       throw FileSystemError.FileNotFound(parent);
     }
-    const entry = new Directory(basename);
-    parent.entries.set(entry.name, entry);
+    const entry = new NODE(basename, FileType.Directory);
+    parent.children.set(entry.name, entry);
     parent.mtime = Date.now();
-    parent.size += 1;
     this._fireSoon(
       { type: FileChangeType.Changed, uri: dirname },
       { type: FileChangeType.Created, uri }
@@ -91,13 +113,12 @@ export class EwivFS implements FileSystemProvider {
   }
   readFile(uri: Uri): Uint8Array {
     const data = this._lookupFile(uri, false).data;
-    if (data) {
-      return data;
-    }
-    throw FileSystemError.FileNotFound(uri);
+    return data;
   }
   createFile(uri: Uri, content: Uint8Array): void {
-    this._createDirectory(uri.with({ path: path.posix.dirname(uri.path) }));
+    this._createDirectory(
+      Uri.parse(`${uri.scheme}:${path.posix.dirname(uri.path)}`)
+    );
     this.writeFile(uri, content, { create: true, overwrite: false });
   }
   writeFile(
@@ -107,10 +128,7 @@ export class EwivFS implements FileSystemProvider {
   ): void {
     const basename = path.posix.basename(uri.path);
     const parent = this._lookupParentDirectory(uri);
-    let entry = parent.entries.get(basename);
-    if (entry instanceof Directory) {
-      throw FileSystemError.FileIsADirectory(uri);
-    }
+    let entry = parent.children.get(basename);
     if (!entry && !options.create) {
       throw FileSystemError.FileNotFound(uri);
     }
@@ -118,13 +136,16 @@ export class EwivFS implements FileSystemProvider {
       throw FileSystemError.FileExists(uri);
     }
     if (!entry) {
-      entry = new File(basename);
-      parent.entries.set(basename, entry);
+      entry = new NODE(basename);
+      parent.children.set(basename, entry);
     } else {
       entry.mtime = Date.now();
     }
-    entry.size = content.byteLength;
-    entry.data = content;
+    const node = new NODE(uri.query);
+    node.data = content;
+    entry.history.set(parseInt(uri.query), node);
+    // entry.size = content.byteLength;
+    // entry.data = content;
     this._fireSoon({ type: FileChangeType.Changed, uri });
     return;
   }
@@ -132,12 +153,11 @@ export class EwivFS implements FileSystemProvider {
     const dirname = uri.with({ path: path.posix.dirname(uri.path) });
     const basename = path.posix.basename(uri.path);
     const parent = this._lookupDirectory(dirname, false);
-    if (!parent.entries.has(basename)) {
+    if (!parent.children.has(basename)) {
       throw FileSystemError.FileNotFound(uri);
     }
-    parent.entries.delete(basename);
+    parent.children.delete(basename);
     parent.mtime = Date.now();
-    parent.size = -1;
     this._fireSoon(
       { type: FileChangeType.Changed, uri: dirname },
       { type: FileChangeType.Deleted, uri }
@@ -155,27 +175,42 @@ export class EwivFS implements FileSystemProvider {
     const oldParent = this._lookupParentDirectory(oldUri);
     const newParent = this._lookupParentDirectory(newUri);
     const newName = path.posix.basename(newUri.path);
-    oldParent.entries.delete(entry.name);
+    oldParent.children.delete(entry.name);
     entry.name = newName;
-    newParent.entries.set(newName, entry);
+    newParent.children.set(newName, entry);
     this._fireSoon(
       { type: FileChangeType.Deleted, uri: oldUri },
       { type: FileChangeType.Created, uri: newUri }
     );
   }
-  private _lookup(uri: Uri, silent: false): Entry;
-  private _lookup(uri: Uri, silent: boolean): Entry | undefined;
-  private _lookup(uri: Uri, silent: boolean): Entry | undefined {
+  private _createDirectory(uri: Uri): void {
     const parts = uri.path.split("/");
-    let entry: Entry = this.root;
+    let entry = this.root;
     for (const part of parts) {
       if (!part) {
         continue;
       }
-      let child: Entry | undefined;
-      if (entry instanceof Directory) {
-        child = entry.entries.get(part);
+      let child: NODE;
+      if (!entry.children.has(part)) {
+        child = new NODE(part);
+        entry.children.set(child.name, child);
+        entry.mtime = Date.now();
+      } else {
+        child = <NODE>entry.children.get(part);
       }
+      entry = child;
+    }
+  }
+  private _lookup(uri: Uri, silent: false): NODE;
+  private _lookup(uri: Uri, silent: boolean): NODE | undefined;
+  private _lookup(uri: Uri, silent: boolean): NODE | undefined {
+    const parts = uri.path.split("/");
+    let entry: NODE = this.root;
+    for (const part of parts) {
+      if (!part) {
+        continue;
+      }
+      const child = entry.children.get(part);
       if (!child) {
         if (!silent) {
           throw FileSystemError.FileNotFound(uri);
@@ -185,46 +220,40 @@ export class EwivFS implements FileSystemProvider {
       }
       entry = child;
     }
+    if (parseInt(uri.query)) {
+      const temp = entry.history.get(parseInt(uri.query));
+      if (!temp) {
+        throw FileSystemError.FileNotFound(uri);
+      }
+      entry = temp;
+    }
     return entry;
   }
-  private _createDirectory(uri: Uri): void {
-    const parts = uri.path.split("/");
-    let entry: Entry = this.root;
-    for (const part of parts) {
-      if (!part) {
-        continue;
-      }
-      let child: Entry;
-      if (entry instanceof File) {
-        throw FileSystemError.FileExists(uri);
-      }
-      if (!entry.entries.has(part)) {
-        child = new Directory(part);
-        entry.entries.set(child.name, child);
-        entry.mtime = Date.now();
-        entry.size += 1;
-      } else {
-        child = <Entry>entry.entries.get(part);
-      }
-      entry = child;
-    }
-  }
-  private _lookupFile(uri: Uri, silent: boolean): File {
+  private _lookupFile(uri: Uri, silent: boolean): NODE {
     const entry = this._lookup(uri, silent);
-    if (entry instanceof File) {
+    if (entry?.type === FileType.File) {
       return entry;
     }
-    throw FileSystemError.FileIsADirectory(uri);
+    if (entry?.history.size !== 0) {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const keys = Array.from(entry!.history.keys());
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const latest = entry!.history.get(keys.sort((a, b) => a - b)[0]);
+      if (latest) {
+        return latest;
+      }
+    }
+    throw FileSystemError.FileNotFound(uri);
   }
-  private _lookupDirectory(uri: Uri, silent: boolean): Directory {
+  private _lookupDirectory(uri: Uri, silent: boolean): NODE {
     const entry = this._lookup(uri, silent);
-    if (entry instanceof Directory) {
+    if (entry) {
       return entry;
     }
-    throw FileSystemError.FileNotADirectory(uri);
+    throw FileSystemError.FileNotFound(uri);
   }
-  private _lookupParentDirectory(uri: Uri): Directory {
-    const dirname = uri.with({ path: path.posix.dirname(uri.path) });
+  private _lookupParentDirectory(uri: Uri): NODE {
+    const dirname = Uri.parse(`${uri.scheme}:${path.posix.dirname(uri.path)}`);
     return this._lookupDirectory(dirname, false);
   }
   private _emitter = new EventEmitter<FileChangeEvent[]>();
