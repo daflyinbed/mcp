@@ -57,8 +57,12 @@
         "icon": "$(remote-explorer)"
       },
       {
-        "command": "ewiv.view_source",
-        "title":"view source"
+        "command": "ewiv.open_source",
+        "title": "open source"
+      },
+      {
+        "command": "ewiv.init_fs",
+        "title": "init fs"
       }
     ],
     "viewsContainers": {
