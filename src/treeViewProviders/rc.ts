@@ -44,7 +44,11 @@ export class Change extends TreeItem {
   public siteName: string;
   constructor(data: RecentChange, index: string, siteName: string) {
     super(`${data.title}`);
-    // this.command = "ewiv.view_source";
+    this.command = {
+      title: "open source",
+      command: "ewiv.open_source",
+      arguments: [siteName, data.pageID, data.title, data.oldRevID],
+    };
     this.siteName = siteName;
     this.index = index;
     this.description = sign(data.newLen - data.oldLen);

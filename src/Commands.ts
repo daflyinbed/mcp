@@ -21,7 +21,8 @@ const historyProvider = new (class implements TextDocumentContentProvider {
       return "";
     }
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    return getSource(site!.index, uri.query, undefined, uri.fragment);
+    return (await getSource(site!.index, uri.query, undefined, uri.fragment))
+      .content;
   }
 })();
 export class Commands {
@@ -59,20 +60,23 @@ export class Commands {
   }
   private async openSource(
     siteName: string,
-    index: string,
     pageID?: string,
     title?: string,
     oldID?: string
   ): Promise<void> {
+    const sites = getSites();
     if (!siteName) {
-      const sites = getSites();
       const temp = await window.showQuickPick(sites.map((v) => v.site));
       if (temp) {
         siteName = temp;
-        index = sites.find((v) => v.site === temp)!.index;
       } else {
         return;
       }
+    }
+    const api = sites.find((v) => v.site === siteName)?.api;
+    if (!api) {
+      console.warn("not found site in conf ", siteName);
+      return;
     }
     if (!this.ewivFS) {
       commands.executeCommand("ewiv.init_fs");
@@ -87,17 +91,15 @@ export class Commands {
         return;
       }
     }
-    let createPage = false;
-    let source = "";
-    const uri = Uri.parse(`ewivFS:/${siteName}/${title}?${oldID || ""}`);
+    let uri = Uri.parse(`ewivFS:/${siteName}/${pageID}`);
     if (!this.ewivFS?.has(uri)) {
-      if (!pageID && !title) {
-        createPage = true;
-        source = "";
-      } else {
-        source = await getSource(index, title, pageID, oldID);
-      }
-      this.ewivFS?.createFile(uri, Buffer.from(source));
+      const source = await getSource(api, title, pageID, oldID);
+      pageID = source.pageID;
+      title = source.title;
+      oldID = source.oldID;
+      const content = source.content;
+      uri = Uri.parse(`ewivFS:/${siteName}/${pageID}#${title}`);
+      this.ewivFS?.createFile(uri, Buffer.from(content));
     }
     commands.executeCommand("vscode.open", uri);
   }
