@@ -1,5 +1,5 @@
 import axios from "axios";
-export class RecentChange {
+export class Change {
   public user: string;
   public comment: string;
   public time: Date;
@@ -46,14 +46,14 @@ export class RC {
   public namespace: string;
   public type: string;
   public _continue = "";
-  public list: Array<RecentChange> = [];
+  public list: Array<Change> = [];
   constructor(api: string, index: string, namespace: string, type: string) {
     this.api = api;
     this.index = index;
     this.namespace = namespace;
     this.type = type;
   }
-  async _get(_continue?: boolean): Promise<Array<RecentChange>> {
+  async _get(_continue?: boolean): Promise<Array<Change>> {
     const params: Record<string, string | number> = {
       action: "query",
       list: "recentchanges",
@@ -71,12 +71,15 @@ export class RC {
     try {
       const result = await axios({
         method: "GET",
+        headers: {
+          "Cache-Control": "no-cache",
+        },
         url: this.api,
         params: params,
       });
       this.list = result.data.query.recentchanges.map(
         (v: Record<string, string | number>) => {
-          return new RecentChange(
+          return new Change(
             <string>v.user,
             <string>v.comment,
             <string>v.timestamp,
@@ -99,7 +102,7 @@ export class RC {
       return [];
     }
   }
-  async init(): Promise<Array<RecentChange>> {
+  async init(): Promise<Array<Change>> {
     return this._get(false);
   }
 }

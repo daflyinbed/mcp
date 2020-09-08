@@ -37,8 +37,8 @@
         "title": "Hello World"
       },
       {
-        "command": "ewiv.refresh",
-        "title": "refressh",
+        "command": "ewiv.refresh_recent_change",
+        "title": "refresh recent changes",
         "icon": "$(refresh)"
       },
       {
@@ -91,9 +91,9 @@
     "menus": {
       "view/title": [
         {
-          "command": "ewiv.refresh",
+          "command": "ewiv.refresh_recent_change",
           "group": "navigation",
-          "when": ""
+          "when": "view == mwRecentChange"
         },
         {
           "command": "ewiv.add_site",
@@ -104,12 +104,12 @@
         {
           "command": "ewiv.diff_source",
           "group": "inline",
-          "when": "viewItem == ewiv:change"
+          "when": "viewItem == ewiv:rc_change"
         },
         {
           "command": "ewiv.diff_in_browser",
           "group": "inline",
-          "when": "viewItem == ewiv:change"
+          "when": "viewItem == ewiv:rc_change"
         }
       ]
     }

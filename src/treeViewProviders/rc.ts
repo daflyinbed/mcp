@@ -1,12 +1,29 @@
-import { RC, RecentChange } from "../mw/rc";
-import { TreeDataProvider, TreeItem, TreeItemCollapsibleState } from "vscode";
+import { RC, Change } from "../mw/rc";
+import {
+  TreeDataProvider,
+  TreeItem,
+  TreeItemCollapsibleState,
+  EventEmitter,
+  Event,
+} from "vscode";
 import { getSites, SiteConf } from "../conf";
-export class RcDataProvider implements TreeDataProvider<Site | Change> {
+import { sign } from "../utils";
+export class RcDataProvider
+  implements TreeDataProvider<Site | ChangeItem | undefined> {
+  private _onDidChangeTreeData: EventEmitter<
+    Site | ChangeItem | undefined
+  > = new EventEmitter<Site | ChangeItem>();
+  readonly onDidChangeTreeData: Event<Site | ChangeItem | undefined> = this
+    ._onDidChangeTreeData.event;
+
+  refresh(): void {
+    this._onDidChangeTreeData.fire(undefined);
+  }
   // constructor() {}
-  getTreeItem(ele: Site | Change): TreeItem {
+  getTreeItem(ele: Site | ChangeItem): TreeItem {
     return ele;
   }
-  async getChildren(ele: Site): Promise<Site[] | Change[]> {
+  async getChildren(ele: Site): Promise<Site[] | ChangeItem[]> {
     if (!ele) {
       return getSites().map((v) => {
         return new Site(v);
@@ -18,7 +35,7 @@ export class RcDataProvider implements TreeDataProvider<Site | Change> {
         ele.rcNamespace,
         ele.rcType
       ).init();
-      return changes.map((v) => new Change(v, ele.index, ele.siteName));
+      return changes.map((v) => new ChangeItem(v, ele.index, ele.siteName));
     }
   }
 }
@@ -37,17 +54,17 @@ class Site extends TreeItem {
     this.rcType = rcType || "edit|new|external|categorize";
   }
 }
-const sign = (num: number): string => (num > 0 ? `+${num}` : String(num));
-export class Change extends TreeItem {
-  public data: RecentChange;
+
+export class ChangeItem extends TreeItem {
+  public data: Change;
   public index: string;
   public siteName: string;
-  constructor(data: RecentChange, index: string, siteName: string) {
+  constructor(data: Change, index: string, siteName: string) {
     super(`${data.title}`);
     this.command = {
       title: "open source",
       command: "ewiv.open_source",
-      arguments: [siteName, data.pageID, data.title, data.oldRevID],
+      arguments: [siteName, data.pageID, data.title, data.revID],
     };
     this.siteName = siteName;
     this.index = index;
@@ -58,6 +75,6 @@ ${data.time.toLocaleString()}
 ${data.title}
 ${data.comment}
 ${data.oldRevID}->${data.revID}`;
-    this.contextValue = "ewiv:change";
+    this.contextValue = "ewiv:rc_change";
   }
 }

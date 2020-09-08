@@ -8,7 +8,8 @@ import {
   window,
 } from "vscode";
 import { EwivFS } from "./fsProvider";
-import { Change } from "./treeViewProviders/rc";
+import { ChangeItem, RcDataProvider } from "./treeViewProviders/rc";
+import { HistoryProvider } from "./treeViewProviders/pageHistory";
 import { getSource } from "./mw/Page";
 import { getSites, SiteConf } from "./conf";
 const historyProvider = new (class implements TextDocumentContentProvider {
@@ -31,23 +32,30 @@ export class Commands {
   ewivFS: EwivFS;
   constructor() {
     this.ewivFS = new EwivFS();
+    const rcTreeProvider = new RcDataProvider();
+    const historyTreeProvider = new HistoryProvider();
     this.arr = [
       workspace.registerFileSystemProvider("ewivFS", this.ewivFS, {
         isCaseSensitive: true,
       }),
+      window.registerTreeDataProvider("mwRecentChange", rcTreeProvider),
+      window.registerTreeDataProvider("mwPageRevisions", historyTreeProvider),
       commands.registerCommand("ewiv.diff_in_browser", this.diffInBrowser),
       commands.registerCommand("ewiv.diff_source", this.diffSource),
       commands.registerCommand("ewiv.open_source", this.openSource, this),
+      commands.registerCommand("ewiv.refresh_recent_change", () => {
+        rcTreeProvider.refresh();
+      }),
     ];
   }
-  private diffInBrowser(node: Change): void {
+  private diffInBrowser(node: ChangeItem): void {
     env.openExternal(
       Uri.parse(
         `${node.index}?title=${node.data.title}&action=historysubmit&type=revision&diff=${node.data.revID}&oldid=${node.data.oldRevID}`
       )
     );
   }
-  private async diffSource(node: Change): Promise<void> {
+  private async diffSource(node: ChangeItem): Promise<void> {
     const makeUri = (id: number): Uri => {
       workspace.registerTextDocumentContentProvider("ewiv", historyProvider);
       return Uri.parse(`ewiv:${node.siteName}?${node.data.title}#${id}`);

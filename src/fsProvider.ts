@@ -11,6 +11,7 @@ import {
   FileChangeType,
 } from "vscode";
 import * as path from "path";
+// import { PageRevisions } from "./mw/Page";
 export class NODE implements FileStat {
   // type: FileType;
   ctime: number;
@@ -24,7 +25,8 @@ export class NODE implements FileStat {
   children: Map<string, NODE>;
   // 历史版本
   history: Map<number, NODE>;
-
+  // 历史信息
+  // revisions?: PageRevisions[];
   constructor(name: string, type?: FileType) {
     // this.type = FileType.Directory;
     this.ctime = Date.now();
@@ -132,7 +134,12 @@ export class EwivFS implements FileSystemProvider {
     if (!entry && !options.create) {
       throw FileSystemError.FileNotFound(uri);
     }
-    if (entry && options.create && !options.overwrite) {
+    if (
+      entry &&
+      options.create &&
+      !options.overwrite &&
+      entry.history.has(parseInt(uri.query))
+    ) {
       throw FileSystemError.FileExists(uri);
     }
     if (!entry) {
@@ -223,7 +230,11 @@ export class EwivFS implements FileSystemProvider {
     if (parseInt(uri.query)) {
       const temp = entry.history.get(parseInt(uri.query));
       if (!temp) {
-        throw FileSystemError.FileNotFound(uri);
+        if (!silent) {
+          throw FileSystemError.FileNotFound(uri);
+        } else {
+          return undefined;
+        }
       }
       entry = temp;
     }
