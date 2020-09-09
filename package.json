@@ -47,6 +47,11 @@
         "icon":"$(refresh)"
       },
       {
+        "command": "ewiv.refresh_page_history",
+        "title":"refresh page history",
+        "icon":"$(refresh)"
+      },
+      {
         "command": "ewiv.add_site",
         "title": "add site",
         "icon": "$(add)"
@@ -103,6 +108,11 @@
         {
           "command": "ewiv.add_site",
           "group": "navigation"
+        },
+        {
+          "command": "ewiv.refresh_page_history",
+          "group": "navigation",
+          "when": "view == mwPageRevisions"
         }
       ],
       "view/item/context": [

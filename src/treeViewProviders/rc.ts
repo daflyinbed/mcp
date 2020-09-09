@@ -5,7 +5,6 @@ import {
   TreeItemCollapsibleState,
   EventEmitter,
   Event,
-  ThemeIcon,
 } from "vscode";
 import { getSites, SiteConf } from "../conf";
 import { sign } from "../utils";

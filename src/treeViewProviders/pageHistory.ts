@@ -48,7 +48,6 @@ export class HistoryProvider implements TreeDataProvider<HistoryItem> {
   async getChildren(element?: HistoryItem): Promise<HistoryItem[] | undefined> {
     if (!element) {
       const doc = window.activeTextEditor?.document;
-
       if (doc?.uri.scheme === "ewivFS") {
         const siteName = doc.uri.path.split("/")[1];
         const { api, index } = <SiteConf>(
