@@ -1,5 +1,4 @@
 import { getHistory, PageRevisions } from "../mw/Page";
-import { getSites, SiteConf } from "../conf";
 import {
   TreeItem,
   TreeDataProvider,
@@ -9,19 +8,10 @@ import {
 } from "vscode";
 export class HistoryItem extends TreeItem {
   public data: PageRevisions;
-  public api: string;
-  public index: string;
   public siteName: string;
-  constructor(
-    data: PageRevisions,
-    api: string,
-    index: string,
-    siteName: string
-  ) {
+  constructor(data: PageRevisions, siteName: string) {
     super(`${data.time.toLocaleString()}`);
     this.data = data;
-    this.api = api;
-    this.index = index;
     this.siteName = siteName;
     this.command = {
       title: "open source",
@@ -55,13 +45,10 @@ export class HistoryProvider implements TreeDataProvider<HistoryItem> {
       const doc = window.activeTextEditor?.document;
       if (doc?.uri.scheme === "ewivFS") {
         const siteName = doc.uri.path.split("/")[1];
-        const { api, index } = <SiteConf>(
-          getSites().find((v) => v.site === siteName)
-        );
         const pagename = doc.uri.path.split("/").slice(2).join("/");
-        const resp = await getHistory(api, pagename);
+        const resp = await getHistory(siteName, pagename);
         return resp.map((v) => {
-          return new HistoryItem(v, api, index, siteName);
+          return new HistoryItem(v, siteName);
         });
       }
     } else {

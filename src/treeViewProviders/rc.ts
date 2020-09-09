@@ -6,7 +6,7 @@ import {
   EventEmitter,
   Event,
 } from "vscode";
-import { getSites, SiteConf } from "../conf";
+import { Conf, SiteConf } from "../mw";
 import { sign } from "../utils";
 export class RcDataProvider
   implements TreeDataProvider<Site | ChangeItem | undefined> {
@@ -25,42 +25,30 @@ export class RcDataProvider
   }
   async getChildren(ele: Site): Promise<Site[] | ChangeItem[]> {
     if (!ele) {
-      return getSites().map((v) => {
-        return new Site(v);
-      });
+      return Conf.get()
+        .getSites()
+        .map((v) => {
+          return new Site(v);
+        });
     } else {
-      const changes = await new RC(
-        ele.api,
-        ele.index,
-        ele.rcNamespace,
-        ele.rcType
-      ).init();
-      return changes.map((v) => new ChangeItem(v, ele.index, ele.siteName));
+      const changes = await new RC(ele.siteConf.site).init();
+      return changes.map((v) => new ChangeItem(v, ele.siteConf.site));
     }
   }
 }
 export class Site extends TreeItem {
-  public siteName: string;
-  public api: string;
-  public index: string;
-  public rcNamespace: string;
-  public rcType: string;
-  constructor({ site, api, index, rcNamespace, rcType }: SiteConf) {
-    super(site, TreeItemCollapsibleState.Collapsed);
-    this.siteName = site;
-    this.api = api;
-    this.index = index;
-    this.rcNamespace = rcNamespace;
-    this.rcType = rcType || "edit|new|external|categorize";
+  public siteConf: SiteConf;
+  constructor(siteConf: SiteConf) {
+    super(siteConf.site, TreeItemCollapsibleState.Collapsed);
+    this.siteConf = siteConf;
     this.contextValue = "ewiv:rc_site";
   }
 }
 
 export class ChangeItem extends TreeItem {
   public data: Change;
-  public index: string;
   public siteName: string;
-  constructor(data: Change, index: string, siteName: string) {
+  constructor(data: Change, siteName: string) {
     super(`${data.title}`);
     this.command = {
       title: "open source",
@@ -68,7 +56,6 @@ export class ChangeItem extends TreeItem {
       arguments: [siteName, data.pageID, data.title, data.revID],
     };
     this.siteName = siteName;
-    this.index = index;
     this.description = sign(data.newLen - data.oldLen);
     this.data = data;
     this.tooltip = `${data.user}

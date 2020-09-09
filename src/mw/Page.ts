@@ -1,5 +1,5 @@
-import axios from "axios";
-
+import got from "got";
+import { Conf } from "./index";
 interface PageRevision {
   pageID: string;
   title: string;
@@ -42,7 +42,7 @@ export class PageRevisions {
   }
 }
 export async function getSource(
-  api: string,
+  site: string,
   title?: string,
   id?: string,
   oldID?: string
@@ -64,16 +64,19 @@ export async function getSource(
     console.error("need revid or title or id");
     return <PageRevision>{};
   }
-  const resp = await axios({
+  const conf = Conf.get().getSite(site);
+  if (!conf) {
+    console.error("site not found: ", site);
+    return <PageRevision>{};
+  }
+  const resp = await got(conf.api, {
     method: "GET",
-    headers: {
-      "Cache-Control": "no-cache",
-    },
-    url: api,
-    params: params,
+    searchParams: params,
+    cookieJar: conf.cookies,
   });
-  id = Object.keys(resp.data.query.pages)[0];
-  const info = resp.data.query.pages[id];
+  const data = JSON.parse(resp.body);
+  id = Object.keys(data.query.pages)[0];
+  const info = data.query.pages[id];
   return {
     pageID: info.pageid,
     title: info.title,
@@ -82,7 +85,7 @@ export async function getSource(
   };
 }
 export async function getHistory(
-  api: string,
+  site: string,
   title?: string,
   id?: string
 ): Promise<PageRevisions[]> {
@@ -98,18 +101,21 @@ export async function getHistory(
   } else if (title) {
     params.titles = title;
   }
-  const resp = await axios({
-    headers: {
-      "Cache-Control": "no-cache",
-    },
-    method: "GET",
-    url: api,
-    params: params,
-  });
-  if (!id) {
-    id = Object.keys(resp.data.query.pages)[0];
+  const conf = Conf.get().getSite(site);
+  if (!conf) {
+    console.error("site not found: ", site);
+    return [];
   }
-  return resp.data.query.pages[id].revisions.map(
+
+  const resp = await got(conf.api, {
+    method: "GET",
+    searchParams: params,
+  });
+  const data = JSON.parse(resp.body);
+  if (!id) {
+    id = Object.keys(data.query.pages)[0];
+  }
+  return data.query.pages[id].revisions.map(
     (v: Record<string, string | number>) => {
       return new PageRevisions(
         <string>v.user,

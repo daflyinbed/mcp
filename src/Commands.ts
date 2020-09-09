@@ -12,18 +12,16 @@ import { EwivFS } from "./fsProvider";
 import { ChangeItem, RcDataProvider, Site } from "./treeViewProviders/rc";
 import { HistoryProvider } from "./treeViewProviders/pageHistory";
 import { getSource } from "./mw/Page";
-import { getSites, SiteConf } from "./conf";
+import { Conf } from "./mw";
 const historyProvider = new (class implements TextDocumentContentProvider {
   async provideTextDocumentContent(uri: Uri): Promise<string> {
-    const site = getSites().find((v: SiteConf) => {
-      return v.site === uri.path;
-    });
+    const site = Conf.get().getSite(uri.path);
     if (!site) {
       console.error("site conf not found: ", uri.toString());
       return "";
     }
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    return (await getSource(site!.api, undefined, undefined, uri.fragment))
+    return (await getSource(site.site, undefined, undefined, uri.fragment))
       .content;
   }
 })();
@@ -64,9 +62,14 @@ export class Commands {
     ];
   }
   private diffInBrowser(node: ChangeItem): void {
+    const conf = Conf.get().getSite(node.siteName);
+    if (!conf) {
+      console.error("site not found: ", node.siteName);
+      return;
+    }
     env.openExternal(
       Uri.parse(
-        `${node.index}?title=${node.data.title}&action=historysubmit&type=revision&diff=${node.data.revID}&oldid=${node.data.oldRevID}`
+        `${conf.index}?title=${node.data.title}&action=historysubmit&type=revision&diff=${node.data.revID}&oldid=${node.data.oldRevID}`
       )
     );
   }
@@ -74,17 +77,12 @@ export class Commands {
     if (!this.ewivFS) {
       commands.executeCommand("ewiv.init_fs");
     }
-    const api = getSites().find((v) => v.site === node.siteName)?.api;
-    if (!api) {
-      console.warn(`site not found`);
-      return;
-    }
     const oldUri = Uri.parse(
       `ewivFS:/${node.siteName}/${node.data.title}?${node.data.oldRevID}`
     );
     if (!this.ewivFS.has(oldUri)) {
       const oldSource = await getSource(
-        api,
+        node.siteName,
         node.data.title,
         undefined,
         node.data.oldRevID.toString()
@@ -96,7 +94,7 @@ export class Commands {
     );
     if (!this.ewivFS.has(newUri)) {
       const newSource = await getSource(
-        api,
+        node.siteName,
         node.data.title,
         undefined,
         node.data.revID.toString()
@@ -116,7 +114,8 @@ export class Commands {
     title?: string,
     oldID?: string
   ): Promise<void> {
-    const sites = getSites();
+    const conf = Conf.get();
+    const sites = conf.getSites();
     if (!siteName) {
       const temp = await window.showQuickPick(sites.map((v) => v.site));
       if (temp) {
@@ -125,8 +124,8 @@ export class Commands {
         return;
       }
     }
-    const api = sites.find((v) => v.site === siteName)?.api;
-    if (!api) {
+    const site = conf.getSite(siteName);
+    if (!site) {
       console.warn("not found site in conf ", siteName);
       return;
     }
@@ -148,7 +147,7 @@ export class Commands {
       uri = uri.with({ query: oldID });
     }
     if (!oldID || !this.ewivFS?.has(uri)) {
-      const source = await getSource(api, title, pageID, oldID);
+      const source = await getSource(siteName, title, pageID, oldID);
       pageID = source.pageID;
       title = source.title;
       oldID = source.oldID;

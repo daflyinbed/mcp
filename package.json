@@ -25,7 +25,11 @@
               "index": "https://fgo.wiki/index.php",
               "api": "https://fgo.wiki/api.php",
               "rcNamespace": "",
-              "rcType": "edit|new|external|categorize"
+              "rcType": "edit|new|external|categorize",
+              "auth": {
+                "name": "夕舞八弦@夕舞八弦bot",
+                "password": "16ak1cd5j7vib1khp7fmd213p02r76fb"
+              }
             }
           ]
         }
@@ -43,13 +47,13 @@
       },
       {
         "command": "ewiv.refresh_site_recent_change",
-        "title":"refresh this site recent changes",
-        "icon":"$(refresh)"
+        "title": "refresh this site recent changes",
+        "icon": "$(refresh)"
       },
       {
         "command": "ewiv.refresh_page_history",
-        "title":"refresh page history",
-        "icon":"$(refresh)"
+        "title": "refresh page history",
+        "icon": "$(refresh)"
       },
       {
         "command": "ewiv.add_site",
@@ -107,7 +111,8 @@
         },
         {
           "command": "ewiv.add_site",
-          "group": "navigation"
+          "group": "navigation",
+          "when": "view == mwRecentChange"
         },
         {
           "command": "ewiv.refresh_page_history",
@@ -160,6 +165,8 @@
     "vscode-test": "^1.4.0"
   },
   "dependencies": {
-    "axios": "^0.20.0"
+    "@types/tough-cookie": "^4.0.0",
+    "got": "^11.6.1",
+    "tough-cookie": "^4.0.0"
   }
 }
