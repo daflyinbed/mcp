@@ -29,7 +29,12 @@ export class HistoryItem extends TreeItem {
       arguments: [siteName, data.pageID, data.title, data.revID],
     };
     this.description = `${data.user} ${data.comment}`;
-    this.tooltip = data.size.toString();
+    this.tooltip = `${siteName}
+${data.title}
+editor: ${data.user}
+${data.time.toLocaleString()}
+${data.comment}
+size: ${data.size}`;
   }
 }
 export class HistoryProvider implements TreeDataProvider<HistoryItem> {

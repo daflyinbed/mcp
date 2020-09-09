@@ -103,7 +103,12 @@ export class Commands {
       );
       this.ewivFS.createFile(newUri, Buffer.from(newSource.content));
     }
-    commands.executeCommand("vscode.diff", oldUri, newUri);
+    commands.executeCommand(
+      "vscode.diff",
+      oldUri,
+      newUri,
+      `${node.siteName} ${node.data.title} ${node.data.oldRevID}-${node.data.revID} ${node.data.comment}`
+    );
   }
   private async openSource(
     siteName: string,
