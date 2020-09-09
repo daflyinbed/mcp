@@ -3,28 +3,15 @@ import {
   env,
   Uri,
   workspace,
-  TextDocumentContentProvider,
   Disposable,
   window,
   TextEditor,
 } from "vscode";
-import { EwivFS } from "./fsProvider";
+import { EwivFS, NODE } from "./fsProvider";
 import { ChangeItem, RcDataProvider, Site } from "./treeViewProviders/rc";
 import { HistoryProvider } from "./treeViewProviders/pageHistory";
-import { getSource } from "./mw/Page";
+import { getSource, edit } from "./mw/Page";
 import { Conf } from "./mw";
-const historyProvider = new (class implements TextDocumentContentProvider {
-  async provideTextDocumentContent(uri: Uri): Promise<string> {
-    const site = Conf.get().getSite(uri.path);
-    if (!site) {
-      console.error("site conf not found: ", uri.toString());
-      return "";
-    }
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    return (await getSource(site.site, undefined, undefined, uri.fragment))
-      .content;
-  }
-})();
 export class Commands {
   arr: Disposable[] = [];
   fsInitialized = false;
@@ -59,6 +46,7 @@ export class Commands {
       commands.registerCommand("ewiv.refresh_page_history", () => {
         historyTreeProvider.refresh();
       }),
+      commands.registerCommand("ewiv.edit", this.edit, this),
     ];
   }
   private diffInBrowser(node: ChangeItem): void {
@@ -156,5 +144,25 @@ export class Commands {
       this.ewivFS?.createFile(uri, Buffer.from(content));
     }
     commands.executeCommand("vscode.open", uri);
+  }
+  private async edit() {
+    // if (!uri) {
+    const uri = window.activeTextEditor!.document.uri;
+    // }
+    const file = <NODE>this.ewivFS.stat(uri);
+    const content = new TextDecoder("utf-8").decode(file.data);
+    const siteName = uri.path.split("/")[1];
+    const pageName = uri.path.split("/").slice(2).join("/");
+    const site = Conf.get().getSite(siteName);
+    if (!site) {
+      console.error("site not found: ", siteName);
+      return;
+    }
+    await Conf.get().init(siteName);
+    let summary = await window.showInputBox({ placeHolder: "summary" });
+    if (!summary) {
+      summary = "";
+    }
+    await edit(siteName, pageName, content, summary, new Date(file.mtime));
   }
 }

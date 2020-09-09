@@ -26,10 +26,8 @@
               "api": "https://fgo.wiki/api.php",
               "rcNamespace": "",
               "rcType": "edit|new|external|categorize",
-              "auth": {
-                "name": "夕舞八弦@夕舞八弦bot",
-                "password": "16ak1cd5j7vib1khp7fmd213p02r76fb"
-              }
+              "name": "夕舞八弦@夕舞八弦bot",
+              "password": "16ak1cd5j7vib1khp7fmd213p02r76fb"
             }
           ]
         }
@@ -77,6 +75,10 @@
       {
         "command": "ewiv.init_fs",
         "title": "init fs"
+      },
+      {
+        "command": "ewiv.edit",
+        "title": "submit change"
       }
     ],
     "viewsContainers": {

@@ -52,6 +52,7 @@ export async function auth(
     },
     cookieJar: cookieJar,
   });
+  // console.log(resp.headers["set-cookie"]);
   const cookie = await cookieJar.getCookies(api);
   const token: string = JSON.parse(resp.body).query.tokens.logintoken;
   console.log(cookie.keys);
@@ -68,7 +69,7 @@ export async function auth(
     },
     cookieJar: cookieJar,
   });
-  if (JSON.parse(res.body).login.result === "success") {
+  if (JSON.parse(res.body).login.result === "Success") {
     return cookieJar;
   }
 }

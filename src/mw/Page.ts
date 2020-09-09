@@ -1,5 +1,6 @@
 import got from "got";
 import { Conf } from "./index";
+import { window } from "vscode";
 interface PageRevision {
   pageID: string;
   title: string;
@@ -129,4 +130,54 @@ export async function getHistory(
       );
     }
   );
+}
+export async function edit(
+  siteName: string,
+  title: string,
+  text: string,
+  summary: string,
+  time: Date
+): Promise<void> {
+  const site = Conf.get().getSite(siteName);
+  if (!site) {
+    console.error("site not found: ", siteName);
+    return;
+  }
+  const token = await getToken(siteName);
+  const resp = await got(site.api, {
+    method: "POST",
+    form: {
+      action: "edit",
+      title: title,
+      text: text,
+      summary: summary || "from ewiv",
+      starttimestamp: time.toISOString(),
+      format: "json",
+      token: token,
+    },
+    cookieJar: site.cookies,
+  });
+  const data = JSON.parse(resp.body);
+  if (data.edit.result === "Success") {
+    window.showInformationMessage("submit success");
+  }
+  console.log(resp.body);
+}
+async function getToken(siteName: string): Promise<string> {
+  const site = Conf.get().getSite(siteName);
+  if (!site) {
+    console.error("site not found: ", siteName);
+    return "";
+  }
+  const resp = await got(site.api, {
+    method: "GET",
+    searchParams: {
+      action: "query",
+      meta: "tokens",
+      type: "csrf",
+      format: "json",
+    },
+    cookieJar: site.cookies,
+  });
+  return JSON.parse(resp.body).query.tokens.csrftoken;
 }

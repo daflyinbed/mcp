@@ -1,4 +1,4 @@
-import { workspace } from "vscode";
+import { workspace, window } from "vscode";
 import { auth } from "./auth";
 import { CookieJar } from "tough-cookie";
 export interface SiteConf {
@@ -7,10 +7,8 @@ export interface SiteConf {
   api: string;
   rcNamespace?: string;
   rcType?: string;
-  auth?: {
-    name: string;
-    password: string;
-  };
+  name?: string;
+  password?: string;
   cookies: CookieJar;
 }
 export class Conf {
@@ -36,19 +34,47 @@ export class Conf {
   public getSite(siteName: string): SiteConf | undefined {
     return this.map.get(siteName);
   }
-  public async init(): Promise<void> {
-    await Promise.all(
-      this.conf
-        .filter((v) => v.auth?.name && v.auth?.password)
-        .map(async (v) => {
-          if (v.auth?.name && v.auth.password) {
-            const jar = await auth(v.api, v.auth.name, v.auth.password);
-            if (jar) {
-              v.cookies = jar;
-            }
-          }
-        })
-    );
+  public async init(siteName: string): Promise<void> {
+    const site = this.getSite(siteName);
+    if (!site) {
+      console.error("site not found: ", siteName);
+      return;
+    }
+    if (site.cookies) {
+      console.log("already logined");
+      return;
+    }
+    if (!site?.name) {
+      console.log("need uesrname of: ", siteName);
+      const temp = await window.showInputBox({
+        placeHolder: "username",
+        prompt: `username for login ${siteName}`,
+      });
+      if (temp) {
+        site.name = temp;
+      } else {
+        return;
+      }
+    }
+    if (!site?.password) {
+      console.log("need password of: ", siteName);
+      const temp = await window.showInputBox({
+        placeHolder: "password",
+        password: true,
+        prompt: `password for login ${siteName}`,
+      });
+      if (temp) {
+        site.password = temp;
+      } else {
+        return;
+      }
+    }
+    const jar = await auth(site.api, site.name, site.password);
+    if (jar) {
+      site.cookies = jar;
+    } else {
+      console.error(`login failed with ${site.name} in ${site.site}`);
+    }
   }
 }
 export function getSites(): Array<SiteConf> {
