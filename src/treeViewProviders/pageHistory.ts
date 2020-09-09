@@ -33,15 +33,15 @@ export class HistoryItem extends TreeItem {
   }
 }
 export class HistoryProvider implements TreeDataProvider<HistoryItem> {
-  // private _onDidChangeTreeData: EventEmitter<
-  //   HistoryItem | undefined
-  // > = new EventEmitter<HistoryItem | undefined>();
-  // readonly onDidChangeTreeData: Event<HistoryItem | undefined> = this
-  //   ._onDidChangeTreeData.event;
+  private _onDidChangeTreeData: EventEmitter<
+    HistoryItem | undefined
+  > = new EventEmitter<HistoryItem | undefined>();
+  readonly onDidChangeTreeData: Event<HistoryItem | undefined> = this
+    ._onDidChangeTreeData.event;
 
-  // refresh(): void {
-  //   this._onDidChangeTreeData.fire(undefined);
-  // }
+  refresh(): void {
+    this._onDidChangeTreeData.fire(undefined);
+  }
   getTreeItem(element: HistoryItem): TreeItem {
     return element;
   }

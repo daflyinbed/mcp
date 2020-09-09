@@ -5,6 +5,7 @@ import {
   TreeItemCollapsibleState,
   EventEmitter,
   Event,
+  ThemeIcon,
 } from "vscode";
 import { getSites, SiteConf } from "../conf";
 import { sign } from "../utils";
@@ -16,8 +17,8 @@ export class RcDataProvider
   readonly onDidChangeTreeData: Event<Site | ChangeItem | undefined> = this
     ._onDidChangeTreeData.event;
 
-  refresh(): void {
-    this._onDidChangeTreeData.fire(undefined);
+  refresh(ele?: Site): void {
+    this._onDidChangeTreeData.fire(ele);
   }
   // constructor() {}
   getTreeItem(ele: Site | ChangeItem): TreeItem {
@@ -39,7 +40,7 @@ export class RcDataProvider
     }
   }
 }
-class Site extends TreeItem {
+export class Site extends TreeItem {
   public siteName: string;
   public api: string;
   public index: string;
@@ -52,6 +53,7 @@ class Site extends TreeItem {
     this.index = index;
     this.rcNamespace = rcNamespace;
     this.rcType = rcType || "edit|new|external|categorize";
+    this.contextValue = "ewiv:rc_site";
   }
 }
 

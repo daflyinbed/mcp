@@ -38,8 +38,13 @@
       },
       {
         "command": "ewiv.refresh_recent_change",
-        "title": "refresh recent changes",
+        "title": "refresh all recent changes",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "ewiv.refresh_site_recent_change",
+        "title":"refresh this site recent changes",
+        "icon":"$(refresh)"
       },
       {
         "command": "ewiv.add_site",
@@ -101,6 +106,11 @@
         }
       ],
       "view/item/context": [
+        {
+          "command": "ewiv.refresh_site_recent_change",
+          "group": "inline",
+          "when": "viewItem == ewiv:rc_site"
+        },
         {
           "command": "ewiv.diff_source",
           "group": "inline",

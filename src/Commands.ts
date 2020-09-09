@@ -8,10 +8,11 @@ import {
   window,
 } from "vscode";
 import { EwivFS } from "./fsProvider";
-import { ChangeItem, RcDataProvider } from "./treeViewProviders/rc";
+import { ChangeItem, RcDataProvider, Site } from "./treeViewProviders/rc";
 import { HistoryProvider } from "./treeViewProviders/pageHistory";
 import { getSource } from "./mw/Page";
 import { getSites, SiteConf } from "./conf";
+import { fstat } from "fs";
 const historyProvider = new (class implements TextDocumentContentProvider {
   async provideTextDocumentContent(uri: Uri): Promise<string> {
     const site = getSites().find((v: SiteConf) => {
@@ -41,11 +42,17 @@ export class Commands {
       window.registerTreeDataProvider("mwRecentChange", rcTreeProvider),
       window.registerTreeDataProvider("mwPageRevisions", historyTreeProvider),
       commands.registerCommand("ewiv.diff_in_browser", this.diffInBrowser),
-      commands.registerCommand("ewiv.diff_source", this.diffSource),
+      commands.registerCommand("ewiv.diff_source", this.diffSource, this),
       commands.registerCommand("ewiv.open_source", this.openSource, this),
       commands.registerCommand("ewiv.refresh_recent_change", () => {
         rcTreeProvider.refresh();
       }),
+      commands.registerCommand(
+        "ewiv.refresh_site_recent_change",
+        (ele: Site) => {
+          rcTreeProvider.refresh(ele);
+        }
+      ),
     ];
   }
   private diffInBrowser(node: ChangeItem): void {
@@ -56,15 +63,35 @@ export class Commands {
     );
   }
   private async diffSource(node: ChangeItem): Promise<void> {
-    const makeUri = (id: number): Uri => {
-      workspace.registerTextDocumentContentProvider("ewiv", historyProvider);
-      return Uri.parse(`ewiv:${node.siteName}?${node.data.title}#${id}`);
-    };
-    commands.executeCommand(
-      "vscode.diff",
-      makeUri(node.data.oldRevID),
-      makeUri(node.data.revID)
+    if (!this.ewivFS) {
+      commands.executeCommand("ewiv.init_fs");
+    }
+    const api = getSites().find((v) => v.site === node.siteName)?.api;
+    if (!api) {
+      console.warn(`site not found`);
+      return;
+    }
+    const oldUri = Uri.parse(
+      `ewivFS:/${node.siteName}/${node.data.title}?${node.data.oldRevID}`
     );
+    const oldSource = await getSource(
+      api,
+      node.data.title,
+      undefined,
+      node.data.oldRevID.toString()
+    );
+    this.ewivFS.createFile(oldUri, Buffer.from(oldSource.content));
+    const newUri = Uri.parse(
+      `ewivFS:/${node.siteName}/${node.data.title}?${node.data.revID}`
+    );
+    const newSource = await getSource(
+      api,
+      node.data.title,
+      undefined,
+      node.data.revID.toString()
+    );
+    this.ewivFS.createFile(newUri, Buffer.from(newSource.content));
+    commands.executeCommand("vscode.diff", oldUri, newUri);
   }
   private async openSource(
     siteName: string,
