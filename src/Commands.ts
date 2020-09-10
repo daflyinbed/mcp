@@ -11,7 +11,7 @@ import { EwivFS, NODE } from "./fsProvider";
 import { ChangeItem, RcDataProvider, Site } from "./treeViewProviders/rc";
 import { HistoryProvider } from "./treeViewProviders/pageHistory";
 import { getSource, edit } from "./mw/Page";
-import { Conf } from "./mw";
+import { Conf, SiteConf } from "./mw";
 export class Commands {
   arr: Disposable[] = [];
   fsInitialized = false;
@@ -47,6 +47,7 @@ export class Commands {
         historyTreeProvider.refresh();
       }),
       commands.registerCommand("ewiv.edit", this.edit, this),
+      commands.registerCommand("ewiv.login", this.login, this),
     ];
   }
   private diffInBrowser(node: ChangeItem): void {
@@ -91,8 +92,12 @@ export class Commands {
     }
     commands.executeCommand(
       "vscode.diff",
-      oldUri,
-      newUri,
+      Uri.parse(
+        `ewivFS:/${node.siteName}/${node.data.title}?-${node.data.oldRevID}`
+      ),
+      Uri.parse(
+        `ewivFS:/${node.siteName}/${node.data.title}?-${node.data.revID}`
+      ),
       `${node.siteName} ${node.data.title} ${node.data.oldRevID}-${node.data.revID} ${node.data.comment}`
     );
   }
@@ -142,6 +147,7 @@ export class Commands {
       const content = source.content;
       uri = Uri.parse(`ewivFS:/${siteName}/${title}?${oldID}`);
       this.ewivFS?.createFile(uri, Buffer.from(content));
+      uri = Uri.parse(`ewivFS:/${siteName}/${title}?-${oldID}`);
     }
     commands.executeCommand("vscode.open", uri);
   }
@@ -164,5 +170,16 @@ export class Commands {
       summary = "";
     }
     await edit(siteName, pageName, content, summary, new Date(file.mtime));
+  }
+  private async login() {
+    const siteName = await window.showQuickPick(
+      Conf.get()
+        .getSites()
+        .map((v) => v.site)
+    );
+    if (!siteName) {
+      return;
+    }
+    await Conf.get().init(siteName);
   }
 }

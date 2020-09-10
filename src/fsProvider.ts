@@ -17,7 +17,6 @@ export class NODE implements FileStat {
   ctime: number;
   mtime: number;
   // size: number;
-
   data: Uint8Array;
   name: string;
   initType: FileType | undefined;
@@ -145,12 +144,18 @@ export class EwivFS implements FileSystemProvider {
     if (!entry) {
       entry = new NODE(basename);
       parent.children.set(basename, entry);
+      parent.mtime = Date.now();
     } else {
       entry.mtime = Date.now();
     }
     const node = new NODE(uri.query);
     node.data = content;
     entry.history.set(parseInt(uri.query), node);
+    if (options.create && !options.overwrite) {
+      const oriNode = new NODE(`-${uri.query}`);
+      oriNode.data = content;
+      entry.history.set(-parseInt(uri.query), oriNode);
+    }
     // entry.size = content.byteLength;
     // entry.data = content;
     this._fireSoon({ type: FileChangeType.Changed, uri });
