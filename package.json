@@ -79,6 +79,10 @@
       {
         "command": "ewiv.edit",
         "title": "submit change"
+      },
+      {
+        "command": "ewiv.login",
+        "title": "ewiv.login"
       }
     ],
     "viewsContainers": {

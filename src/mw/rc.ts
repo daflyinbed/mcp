@@ -74,6 +74,7 @@ export class RC {
       const result = await got(this.conf.api, {
         method: "GET",
         searchParams: params,
+        cookieJar: this.conf.cookies,
       });
       const data = JSON.parse(result.body);
       this.list = data.query.recentchanges.map(

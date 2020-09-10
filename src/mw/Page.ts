@@ -111,6 +111,7 @@ export async function getHistory(
   const resp = await got(conf.api, {
     method: "GET",
     searchParams: params,
+    cookieJar: conf.cookies,
   });
   const data = JSON.parse(resp.body);
   if (!id) {

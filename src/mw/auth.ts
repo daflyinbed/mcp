@@ -1,39 +1,3 @@
-// import axios from "axios";
-// import { stringify } from "querystring";
-// axios({
-//   method: "POST",
-//   url: "https://fgo.wiki/api.php",
-//   params: {
-//     action: "query",
-//     meta: "tokens",
-//     type: "login",
-//     format: "json",
-//   },
-// }).then((res) => {
-//   console.log(res.headers["set-cookie"][0].split(";")[0]);
-//   const loginToken = res.data.query.tokens.logintoken;
-//   console.log(loginToken);
-//   axios({
-//     method: "POST",
-//     url: "http://114.55.210.235:8080/api.php",
-//     data: stringify({
-//       action: "login",
-//       lgtoken: loginToken,
-//       lgname: "夕舞八弦",
-//       lgpassword: "19990804s",
-//       format: "json",
-//     }),
-//     headers: {
-//       Host: "fgo.wiki",
-//       "Content-Type": "application/x-www-form-urlencoded",
-//       Cookie: res.headers["set-cookie"][0].split(";")[0],
-//     },
-//   }).then((resp) => {
-//     console.log(resp.headers);
-//     console.log(resp.data);
-//     // console.log(resp);
-//   });
-// });
 import got from "got";
 import { CookieJar } from "tough-cookie";
 export async function auth(
