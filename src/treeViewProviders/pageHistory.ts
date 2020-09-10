@@ -6,6 +6,7 @@ import {
   EventEmitter,
   Event,
 } from "vscode";
+import { parseUri } from "../utils";
 export class HistoryItem extends TreeItem {
   public data: PageRevisions;
   public siteName: string;
@@ -44,9 +45,8 @@ export class HistoryProvider implements TreeDataProvider<HistoryItem> {
     if (!element) {
       const doc = window.activeTextEditor?.document;
       if (doc?.uri.scheme === "ewivFS") {
-        const siteName = doc.uri.path.split("/")[1];
-        const pagename = doc.uri.path.split("/").slice(2).join("/");
-        const resp = await getHistory(siteName, pagename);
+        const { siteName, pageName } = parseUri(doc.uri);
+        const resp = await getHistory(siteName, pageName);
         return resp.map((v) => {
           return new HistoryItem(v, siteName);
         });

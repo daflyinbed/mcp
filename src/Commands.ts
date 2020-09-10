@@ -12,6 +12,7 @@ import { ChangeItem, RcDataProvider, Site } from "./treeViewProviders/rc";
 import { HistoryProvider } from "./treeViewProviders/pageHistory";
 import { getSource, edit } from "./mw/Page";
 import { Conf, SiteConf } from "./mw";
+import { parseUri } from "./utils";
 export class Commands {
   arr: Disposable[] = [];
   fsInitialized = false;
@@ -93,10 +94,10 @@ export class Commands {
     commands.executeCommand(
       "vscode.diff",
       Uri.parse(
-        `ewivFS:/${node.siteName}/${node.data.title}?-${node.data.oldRevID}`
+        `ewivFS:/${node.siteName}/${node.data.title}?${node.data.oldRevID}`
       ),
       Uri.parse(
-        `ewivFS:/${node.siteName}/${node.data.title}?-${node.data.revID}`
+        `ewivFS:/${node.siteName}/${node.data.title}?${node.data.revID}`
       ),
       `${node.siteName} ${node.data.title} ${node.data.oldRevID}-${node.data.revID} ${node.data.comment}`
     );
@@ -147,18 +148,19 @@ export class Commands {
       const content = source.content;
       uri = Uri.parse(`ewivFS:/${siteName}/${title}?${oldID}`);
       this.ewivFS?.createFile(uri, Buffer.from(content));
-      uri = Uri.parse(`ewivFS:/${siteName}/${title}?-${oldID}`);
     }
     commands.executeCommand("vscode.open", uri);
   }
-  private async edit() {
-    // if (!uri) {
-    const uri = window.activeTextEditor!.document.uri;
-    // }
+  private async edit({ resourceUri }: any) {
+    let uri: Uri;
+    if (resourceUri) {
+      uri = resourceUri;
+    } else {
+      uri = window.activeTextEditor!.document.uri;
+    }
     const file = <NODE>this.ewivFS.stat(uri);
     const content = new TextDecoder("utf-8").decode(file.data);
-    const siteName = uri.path.split("/")[1];
-    const pageName = uri.path.split("/").slice(2).join("/");
+    const { siteName, pageName } = parseUri(uri);
     const site = Conf.get().getSite(siteName);
     if (!site) {
       console.error("site not found: ", siteName);
@@ -170,6 +172,7 @@ export class Commands {
       summary = "";
     }
     await edit(siteName, pageName, content, summary, new Date(file.mtime));
+    this.ewivFS.rollBack(uri);
   }
   private async login() {
     const siteName = await window.showQuickPick(

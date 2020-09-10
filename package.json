@@ -78,7 +78,8 @@
       },
       {
         "command": "ewiv.edit",
-        "title": "submit change"
+        "title": "submit change",
+        "icon": "$(save)"
       },
       {
         "command": "ewiv.login",
@@ -141,6 +142,13 @@
           "command": "ewiv.diff_in_browser",
           "group": "inline",
           "when": "viewItem == ewiv:rc_change"
+        }
+      ],
+      "scm/resourceState/context": [
+        {
+          "command": "ewiv.edit",
+          "group": "inline",
+          "when": "scmProvider == ewiv && scmResourceGroup == unsubmit"
         }
       ]
     }

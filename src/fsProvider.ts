@@ -11,6 +11,7 @@ import {
   FileChangeType,
 } from "vscode";
 import * as path from "path";
+import { toNegative, toPositive } from "./utils";
 // import { PageRevisions } from "./mw/Page";
 export class NODE implements FileStat {
   // type: FileType;
@@ -150,12 +151,13 @@ export class EwivFS implements FileSystemProvider {
     }
     const node = new NODE(uri.query);
     node.data = content;
-    entry.history.set(parseInt(uri.query), node);
+    const negative = toNegative(uri.query);
     if (options.create && !options.overwrite) {
-      const oriNode = new NODE(`-${uri.query}`);
-      oriNode.data = content;
-      entry.history.set(-parseInt(uri.query), oriNode);
+      const ori = new NODE(negative.toString());
+      ori.data = content;
+      entry.history.set(negative, ori);
     }
+    entry.history.set(toPositive(uri.query), node);
     // entry.size = content.byteLength;
     // entry.data = content;
     this._fireSoon({ type: FileChangeType.Changed, uri });
@@ -194,6 +196,16 @@ export class EwivFS implements FileSystemProvider {
       { type: FileChangeType.Deleted, uri: oldUri },
       { type: FileChangeType.Created, uri: newUri }
     );
+  }
+  rollBack(uri: Uri): void {
+    const page = this._lookup(uri.with({ query: "" }), false);
+    const ori = page.history.get(toNegative(uri.query));
+    if (!ori) {
+      console.error("rollback fail: ", uri);
+      return;
+    }
+    page.history.set(toPositive(uri.query), ori);
+    this._fireSoon({ type: FileChangeType.Changed, uri: uri });
   }
   private _createDirectory(uri: Uri): void {
     const parts = uri.path.split("/");
