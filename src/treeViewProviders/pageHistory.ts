@@ -6,17 +6,17 @@ import {
   EventEmitter,
   Event,
 } from "vscode";
-import { parseUri } from "../utils";
+import { parseUri, toPositive } from "../utils";
 export class HistoryItem extends TreeItem {
   public data: PageRevisions;
   public siteName: string;
-  constructor(data: PageRevisions, siteName: string) {
-    super(`${data.time.toLocaleString()}`);
+  constructor(data: PageRevisions, siteName: string, curRevID: number) {
+    super(`${curRevID === data.revID ? "[CURRENT] " : ""}${data.revID}`);
     this.data = data;
     this.siteName = siteName;
     this.command = {
       title: "open source",
-      command: "ewiv.open_source",
+      command: "mcp.open_source",
       arguments: [siteName, data.pageID, data.title, data.revID],
     };
     this.description = `${data.user} ${data.comment}`;
@@ -24,7 +24,8 @@ export class HistoryItem extends TreeItem {
 ${data.title}
 editor: ${data.user}
 ${data.time.toLocaleString()}
-${data.comment}
+${data.comment || "no comment"}
+revID: ${data.revID}
 size: ${data.size}`;
   }
 }
@@ -44,11 +45,11 @@ export class HistoryProvider implements TreeDataProvider<HistoryItem> {
   async getChildren(element?: HistoryItem): Promise<HistoryItem[] | undefined> {
     if (!element) {
       const doc = window.activeTextEditor?.document;
-      if (doc?.uri.scheme === "ewivFS") {
+      if (doc?.uri.scheme === "mcpFS") {
         const { siteName, pageName } = parseUri(doc.uri);
         const resp = await getHistory(siteName, pageName);
         return resp.map((v) => {
-          return new HistoryItem(v, siteName);
+          return new HistoryItem(v, siteName, toPositive(doc.uri.query));
         });
       }
     } else {

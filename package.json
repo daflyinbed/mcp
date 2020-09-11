@@ -1,6 +1,6 @@
 {
-  "name": "ewiv",
-  "displayName": "ewiv",
+  "name": "mcp",
+  "displayName": "mcp",
   "description": "",
   "version": "0.0.1",
   "engines": {
@@ -10,14 +10,14 @@
     "Other"
   ],
   "activationEvents": [
-    "onView:mwRecentChange"
+    "onView:mcpRecentChange"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "configuration": {
-      "title": "ewiv",
+      "title": "mcp",
       "properties": {
-        "ewiv.sites": {
+        "mcp.sites": {
           "type": "array",
           "default": [
             {
@@ -35,85 +35,77 @@
     },
     "commands": [
       {
-        "command": "ewiv.helloWorld",
-        "title": "Hello World"
-      },
-      {
-        "command": "ewiv.refresh_recent_change",
-        "title": "refresh all recent changes",
+        "command": "mcp.refresh_recent_change",
+        "title": "mcp: refresh all recent changes",
         "icon": "$(refresh)"
       },
       {
-        "command": "ewiv.refresh_site_recent_change",
-        "title": "refresh this site recent changes",
+        "command": "mcp.refresh_site_recent_change",
+        "title": "mcp: refresh this site recent changes",
         "icon": "$(refresh)"
       },
       {
-        "command": "ewiv.refresh_page_history",
-        "title": "refresh page history",
+        "command": "mcp.refresh_page_history",
+        "title": "mcp: refresh page history",
         "icon": "$(refresh)"
       },
       {
-        "command": "ewiv.add_site",
-        "title": "add site",
+        "command": "mcp.add_site",
+        "title": "mcp: add site",
         "icon": "$(add)"
       },
       {
-        "command": "ewiv.diff_source",
-        "title": "diff source",
+        "command": "mcp.diff_source",
+        "title": "mcp: diff source",
         "icon": "$(diff)"
       },
       {
-        "command": "ewiv.diff_in_browser",
-        "title": "open compare in browser",
+        "command": "mcp.diff_in_browser",
+        "title": "mcp: open compare in browser",
         "icon": "$(compare-changes)"
       },
       {
-        "command": "ewiv.open_in_browser",
-        "title": "open page in browser",
+        "command": "mcp.open_in_browser",
+        "title": "mcp: open page in browser",
         "icon": "$(remote-explorer)"
       },
       {
-        "command": "ewiv.open_source",
-        "title": "open source"
+        "command": "mcp.open_source",
+        "title": "mcp: open source"
       },
       {
-        "command": "ewiv.init_fs",
-        "title": "init fs"
-      },
-      {
-        "command": "ewiv.edit",
-        "title": "submit change",
+        "command": "mcp.edit",
+        "title": "mcp: submit change",
         "icon": "$(save)"
       },
       {
-        "command": "ewiv.login",
-        "title": "ewiv.login"
+        "command": "mcp.login",
+        "title": "mcp: login"
       },
       {
-        "command":"ewiv.discard",
-        "title":"discard",
-        "icon":"$(discard)"
+        "command": "mcp.discard",
+        "title": "mcp: discard",
+        "icon": "$(discard)"
       }
     ],
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "mwHistoryExplorer",
+          "id": "mcpHistoryExplorer",
           "title": "history-explorer",
           "icon": "images/icon.svg"
         }
       ]
     },
     "views": {
-      "mwHistoryExplorer": [
+      "mcpHistoryExplorer": [
         {
-          "id": "mwRecentChange",
+          "id": "mcpRecentChange",
           "name": "recent change",
           "contextualTitle": "Recent Change"
         },
         {
-          "id": "mwPageRevisions",
+          "id": "mcpPageRevisions",
           "name": "page revisions",
           "contextualTitle": "Page Revision"
         }
@@ -122,54 +114,49 @@
     "menus": {
       "view/title": [
         {
-          "command": "ewiv.refresh_recent_change",
+          "command": "mcp.refresh_recent_change",
           "group": "navigation",
-          "when": "view == mwRecentChange"
+          "when": "view == mcpRecentChange"
         },
         {
-          "command": "ewiv.add_site",
+          "command": "mcp.refresh_page_history",
           "group": "navigation",
-          "when": "view == mwRecentChange"
-        },
-        {
-          "command": "ewiv.refresh_page_history",
-          "group": "navigation",
-          "when": "view == mwPageRevisions"
+          "when": "view == mcpPageRevisions"
         }
       ],
       "view/item/context": [
         {
-          "command": "ewiv.refresh_site_recent_change",
+          "command": "mcp.refresh_site_recent_change",
           "group": "inline",
-          "when": "viewItem == ewiv:rc_site"
+          "when": "viewItem == mcp:rc_site"
         },
         {
-          "command": "ewiv.diff_source",
+          "command": "mcp.diff_source",
           "group": "inline",
-          "when": "viewItem == ewiv:rc_change"
+          "when": "viewItem == mcp:rc_change"
         },
         {
-          "command": "ewiv.diff_in_browser",
+          "command": "mcp.diff_in_browser",
           "group": "inline",
-          "when": "viewItem == ewiv:rc_change"
+          "when": "viewItem == mcp:rc_change"
         }
       ],
       "scm/resourceState/context": [
         {
-          "command": "ewiv.edit",
+          "command": "mcp.edit",
           "group": "inline",
-          "when": "scmProvider == ewiv && scmResourceGroup == unsubmit"
+          "when": "scmProvider == mcp"
         },
         {
-          "command": "ewiv.discard",
+          "command": "mcp.discard",
           "group": "inline",
-          "when": "scmProvider ==ewiv && scmResourceGroup == unsubmit"
+          "when": "scmProvider ==mcp"
         }
       ],
       "editor/title": [
         {
-          "command": "ewiv.open_in_browser",
-          "when": "resourceScheme == ewivFS && !isInDiffEditor",
+          "command": "mcp.open_in_browser",
+          "when": "resourceScheme == mcpFS && !isInDiffEditor",
           "group": "navigation"
         }
       ]

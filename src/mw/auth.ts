@@ -16,12 +16,7 @@ export async function auth(
     },
     cookieJar: cookieJar,
   });
-  // console.log(resp.headers["set-cookie"]);
-  const cookie = await cookieJar.getCookies(api);
   const token: string = JSON.parse(resp.body).query.tokens.logintoken;
-  console.log(cookie.keys);
-  console.log(cookie.values);
-  console.log(token);
   const res = await got(api, {
     method: "POST",
     form: {

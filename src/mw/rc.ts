@@ -1,5 +1,6 @@
 import got from "got";
 import { Conf, SiteConf } from "./index";
+import { window } from "vscode";
 export class Change {
   public user: string;
   public comment: string;
@@ -53,7 +54,6 @@ export class RC {
   }
   async _get(_continue?: boolean): Promise<Array<Change>> {
     if (!this.conf) {
-      console.error("site not found: ", this.site);
       return [];
     }
     const params: Record<string, string | number> = {
@@ -98,7 +98,8 @@ export class RC {
       this._continue = data.continue.rccontinue;
       return this.list;
     } catch (e) {
-      console.warn(e);
+      window.showErrorMessage(`get ${this.site}'s recent change failed`);
+      console.error(e);
       return [];
     }
   }

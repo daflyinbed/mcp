@@ -76,10 +76,7 @@ export class NODE implements FileStat {
     return result;
   }
 }
-export class EwivFS implements FileSystemProvider {
-  constructor() {
-    console.log("init");
-  }
+export class McpFS implements FileSystemProvider {
   root = new NODE("");
   watch(
     uri: Uri,

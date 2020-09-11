@@ -2,25 +2,12 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from "vscode";
 import { Commands } from "./Commands";
-import { mySCM } from "./scm";
+import { McpSCM } from "./scm";
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext): void {
-  // Use the console to output diagnostic information (console.log) and errors (console.error)
-  // This line of code will only be executed once when your extension is activated
-  console.log('Congratulations, your extension "ewiv" is now active!');
   context.subscriptions.push(...new Commands().arr);
-  new mySCM(context);
-  // The command has been defined in the package.json file
-  // Now provide the implementation of the command with registerCommand
-  // The commandId parameter must match the command field in package.json
-  const disposable = vscode.commands.registerCommand("ewiv.helloWorld", () => {
-    // The code you place here will be executed every time your command is executed
-
-    // Display a message box to the user
-    vscode.window.showInformationMessage("Hello World from ewiv!");
-  });
-  context.subscriptions.push(disposable);
+  new McpSCM(context);
 }
 
 // this method is called when your extension is deactivated

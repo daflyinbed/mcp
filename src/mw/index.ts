@@ -16,7 +16,7 @@ export class Conf {
   private map: Map<string, SiteConf>;
   private static instance: Conf;
   constructor() {
-    this.conf = <SiteConf[]>workspace.getConfiguration("ewiv").get("sites");
+    this.conf = <SiteConf[]>workspace.getConfiguration("mcp").get("sites");
     this.map = new Map();
     this.conf.forEach((v) => {
       this.map.set(v.site, v);
@@ -28,24 +28,34 @@ export class Conf {
     }
     return this.instance;
   }
+  public reload(): void {
+    this.conf = <SiteConf[]>workspace.getConfiguration("mcp").get("sites");
+    this.map = new Map();
+    this.conf.forEach((v) => {
+      this.map.set(v.site, v);
+    });
+  }
   public getSites(): SiteConf[] {
     return this.conf;
   }
   public getSite(siteName: string): SiteConf | undefined {
-    return this.map.get(siteName);
+    const site = this.map.get(siteName);
+    if (!site) {
+      window.showErrorMessage("site not found in configure file" + siteName);
+    }
+    return site;
   }
   public async init(siteName: string): Promise<void> {
     const site = this.getSite(siteName);
     if (!site) {
-      console.error("site not found: ", siteName);
       return;
     }
     if (site.cookies) {
-      console.log("already logined");
+      // console.log("already logined");
       return;
     }
     if (!site?.name) {
-      console.log("need uesrname of: ", siteName);
+      // console.log("need uesrname of: ", siteName);
       const temp = await window.showInputBox({
         placeHolder: "username",
         prompt: `username for login ${siteName}`,
@@ -57,7 +67,7 @@ export class Conf {
       }
     }
     if (!site?.password) {
-      console.log("need password of: ", siteName);
+      // console.log("need password of: ", siteName);
       const temp = await window.showInputBox({
         placeHolder: "password",
         password: true,
@@ -73,12 +83,12 @@ export class Conf {
     if (jar) {
       site.cookies = jar;
     } else {
-      console.error(`login failed with ${site.name} in ${site.site}`);
+      window.showErrorMessage(`login failed with ${site.name} in ${site.site}`);
     }
   }
 }
 export function getSites(): Array<SiteConf> {
-  return <Array<SiteConf>>workspace.getConfiguration("ewiv").get("sites");
+  return <Array<SiteConf>>workspace.getConfiguration("mcp").get("sites");
 }
 export function getSite(siteName: string): SiteConf | undefined {
   return getSites().find((v) => v.site === siteName);

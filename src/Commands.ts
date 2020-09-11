@@ -8,7 +8,7 @@ import {
   TextEditor,
   StatusBarAlignment,
 } from "vscode";
-import { EwivFS, NODE } from "./fsProvider";
+import { McpFS, NODE } from "./fsProvider";
 import { ChangeItem, RcDataProvider, Site } from "./treeViewProviders/rc";
 import { HistoryProvider } from "./treeViewProviders/pageHistory";
 import { getSource, edit } from "./mw/Page";
@@ -17,52 +17,52 @@ import { parseUri, toPositive } from "./utils";
 export class Commands {
   arr: Disposable[] = [];
   fsInitialized = false;
-  ewivFS: EwivFS;
+  mcpFS: McpFS;
   constructor() {
-    this.ewivFS = new EwivFS();
+    this.mcpFS = new McpFS();
     const rcTreeProvider = new RcDataProvider();
     const historyTreeProvider = new HistoryProvider();
     const statusBarItem = window.createStatusBarItem(StatusBarAlignment.Left);
     window.onDidChangeActiveTextEditor((e: TextEditor | undefined) => {
-      if (e?.document.uri.scheme === "ewivFS") {
+      if (e?.document.uri.scheme === "mcpFS") {
         const uri = e.document.uri;
         historyTreeProvider.refresh();
-        const { siteName, pageName } = parseUri(uri);
-        statusBarItem.text = `${siteName} • ${pageName} • ${
-          this.ewivFS.getPageData(uri).contentModel || "wikitext"
+        const { siteName, pageName, history } = parseUri(uri);
+        statusBarItem.text = `${siteName} • ${pageName} • ${history} • ${
+          this.mcpFS.getPageData(uri).contentModel || "wikitext"
         }`;
         statusBarItem.show();
       }
     });
     this.arr = [
-      workspace.registerFileSystemProvider("ewivFS", this.ewivFS, {
+      workspace.registerFileSystemProvider("mcpFS", this.mcpFS, {
         isCaseSensitive: true,
       }),
-      window.registerTreeDataProvider("mwRecentChange", rcTreeProvider),
-      window.registerTreeDataProvider("mwPageRevisions", historyTreeProvider),
-      commands.registerCommand("ewiv.diff_in_browser", this.diffInBrowser),
-      commands.registerCommand("ewiv.diff_source", this.diffSource, this),
-      commands.registerCommand("ewiv.open_source", this.openSource, this),
-      commands.registerCommand("ewiv.refresh_recent_change", () => {
+      window.registerTreeDataProvider("mcpRecentChange", rcTreeProvider),
+      window.registerTreeDataProvider("mcpPageRevisions", historyTreeProvider),
+      commands.registerCommand("mcp.diff_in_browser", this.diffInBrowser),
+      commands.registerCommand("mcp.diff_source", this.diffSource, this),
+      commands.registerCommand("mcp.open_source", this.openSource, this),
+      commands.registerCommand("mcp.refresh_recent_change", () => {
+        Conf.get().reload();
         rcTreeProvider.refresh();
       }),
       commands.registerCommand(
-        "ewiv.refresh_site_recent_change",
+        "mcp.refresh_site_recent_change",
         (ele: Site) => {
           rcTreeProvider.refresh(ele);
         }
       ),
-      commands.registerCommand("ewiv.refresh_page_history", () => {
+      commands.registerCommand("mcp.refresh_page_history", () => {
         historyTreeProvider.refresh();
       }),
-      commands.registerCommand("ewiv.edit", this.edit, this),
-      commands.registerCommand("ewiv.discard", this.discard, this),
-      commands.registerCommand("ewiv.login", this.login, this),
-      commands.registerCommand("ewiv.open_in_browser", (uri: Uri) => {
+      commands.registerCommand("mcp.edit", this.edit, this),
+      commands.registerCommand("mcp.discard", this.discard, this),
+      commands.registerCommand("mcp.login", this.login, this),
+      commands.registerCommand("mcp.open_in_browser", (uri: Uri) => {
         const { siteName, pageName } = parseUri(uri);
         const site = Conf.get().getSite(siteName);
         if (!site) {
-          console.error("site not found: ", uri);
           return;
         }
         env.openExternal(
@@ -78,7 +78,6 @@ export class Commands {
   private diffInBrowser(node: ChangeItem): void {
     const conf = Conf.get().getSite(node.siteName);
     if (!conf) {
-      console.error("site not found: ", node.siteName);
       return;
     }
     env.openExternal(
@@ -88,40 +87,37 @@ export class Commands {
     );
   }
   private async diffSource(node: ChangeItem): Promise<void> {
-    if (!this.ewivFS) {
-      commands.executeCommand("ewiv.init_fs");
-    }
     const oldUri = Uri.parse(
-      `ewivFS:/${node.siteName}/${node.data.title}?${node.data.oldRevID}`
+      `mcpFS:/${node.siteName}/${node.data.title}?${node.data.oldRevID}`
     );
-    if (!this.ewivFS.has(oldUri)) {
+    if (!this.mcpFS.has(oldUri)) {
       const oldSource = await getSource(
         node.siteName,
         node.data.title,
         undefined,
         node.data.oldRevID.toString()
       );
-      this.ewivFS.createFile(oldUri, Buffer.from(oldSource.content));
+      this.mcpFS.createFile(oldUri, Buffer.from(oldSource.content));
     }
     const newUri = Uri.parse(
-      `ewivFS:/${node.siteName}/${node.data.title}?${node.data.revID}`
+      `mcpFS:/${node.siteName}/${node.data.title}?${node.data.revID}`
     );
-    if (!this.ewivFS.has(newUri)) {
+    if (!this.mcpFS.has(newUri)) {
       const newSource = await getSource(
         node.siteName,
         node.data.title,
         undefined,
         node.data.revID.toString()
       );
-      this.ewivFS.createFile(newUri, Buffer.from(newSource.content));
+      this.mcpFS.createFile(newUri, Buffer.from(newSource.content));
     }
     commands.executeCommand(
       "vscode.diff",
       Uri.parse(
-        `ewivFS:/${node.siteName}/${node.data.title}?${node.data.oldRevID}`
+        `mcpFS:/${node.siteName}/${node.data.title}?${node.data.oldRevID}`
       ),
       Uri.parse(
-        `ewivFS:/${node.siteName}/${node.data.title}?${node.data.revID}`
+        `mcpFS:/${node.siteName}/${node.data.title}?${node.data.revID}`
       ),
       `${node.siteName} ${node.data.title} ${node.data.oldRevID}-${node.data.revID} ${node.data.comment}`
     );
@@ -144,11 +140,7 @@ export class Commands {
     }
     const site = conf.getSite(siteName);
     if (!site) {
-      console.warn("not found site in conf ", siteName);
       return;
-    }
-    if (!this.ewivFS) {
-      commands.executeCommand("ewiv.init_fs");
     }
     if (!pageID && !title) {
       const temp = await window.showInputBox({
@@ -160,35 +152,34 @@ export class Commands {
         return;
       }
     }
-    let uri = Uri.parse(`ewivFS:/${siteName}/${title}`);
+    let uri = Uri.parse(`mcpFS:/${siteName}/${title}`);
     if (oldID) {
       uri = uri.with({ query: oldID });
     }
-    if (!oldID || !this.ewivFS?.has(uri)) {
+    if (!oldID || !this.mcpFS?.has(uri)) {
       const source = await getSource(siteName, title, pageID, oldID);
       pageID = source.pageID;
       title = source.title;
       oldID = source.oldID;
       const content = source.content;
-      uri = Uri.parse(`ewivFS:/${siteName}/${title}?${oldID}`);
-      this.ewivFS?.createFile(uri, Buffer.from(content));
-      this.ewivFS?.setPageData(uri, source.pageData);
+      uri = Uri.parse(`mcpFS:/${siteName}/${title}?${oldID}`);
+      this.mcpFS?.createFile(uri, Buffer.from(content));
+      this.mcpFS?.setPageData(uri, source.pageData);
     }
     commands.executeCommand("vscode.open", uri);
   }
-  private async edit({ resourceUri }: any) {
+  private async edit(data: any) {
     let uri: Uri;
-    if (resourceUri) {
-      uri = resourceUri;
+    if (data?.resourceUri instanceof Uri) {
+      uri = data.resourceUri;
     } else {
       uri = window.activeTextEditor!.document.uri;
     }
-    const file = <NODE>this.ewivFS.stat(uri);
+    const file = <NODE>this.mcpFS.stat(uri);
     const content = new TextDecoder("utf-8").decode(file.data);
     const { siteName, pageName } = parseUri(uri);
     const site = Conf.get().getSite(siteName);
     if (!site) {
-      console.error("site not found: ", siteName);
       return;
     }
     await Conf.get().init(siteName);
@@ -196,8 +187,21 @@ export class Commands {
     if (!summary) {
       summary = "";
     }
-    await edit(siteName, pageName, content, summary, new Date(file.mtime));
-    this.ewivFS.rollBack(uri);
+    const page = <NODE>this.mcpFS.stat(uri.with({ query: "" }));
+    const maxRevID = Array.from(page.history.keys()).sort((a, b) => b - a)[0];
+    const success = await edit(
+      siteName,
+      pageName,
+      content,
+      summary,
+      toPositive(uri.query),
+      maxRevID === toPositive(uri.query)
+    );
+    if (success) {
+      this.mcpFS.rollBack(uri);
+      commands.executeCommand("mcp.refresh_recent_change");
+      commands.executeCommand("mcp.refresh_page_history");
+    }
   }
   private async login() {
     const siteName = await window.showQuickPick(
@@ -211,6 +215,6 @@ export class Commands {
     await Conf.get().init(siteName);
   }
   private discard({ resourceUri }: { resourceUri: Uri }) {
-    this.ewivFS.rollBack(resourceUri);
+    this.mcpFS.rollBack(resourceUri);
   }
 }

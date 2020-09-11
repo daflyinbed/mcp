@@ -69,7 +69,6 @@ export async function getSource(
   }
   const conf = Conf.get().getSite(site);
   if (!conf) {
-    console.error("site not found: ", site);
     return <PageRevision>{};
   }
   const resp = await got(conf.api, {
@@ -107,7 +106,6 @@ export async function getHistory(
   }
   const conf = Conf.get().getSite(site);
   if (!conf) {
-    console.error("site not found: ", site);
     return [];
   }
 
@@ -140,22 +138,35 @@ export async function edit(
   title: string,
   text: string,
   summary: string,
-  time: Date
-): Promise<void> {
+  revID: number,
+  Latest: boolean
+): Promise<boolean> {
   const site = Conf.get().getSite(siteName);
   if (!site) {
-    console.error("site not found: ", siteName);
-    return;
+    return false;
   }
-  const token = await getToken(siteName);
+  const [token, curID] = await getToken(siteName, title);
+  if (!token || curID == undefined || isNaN(curID)) {
+    window.showErrorMessage(`submit ${title} failed`);
+    return false;
+  }
+  if (revID < curID) {
+    const y = await window.showInputBox({
+      prompt: `your edit is based on ${revID} which ${
+        Latest ? "IS LATEST" : "IS NOT LATEST"
+      } version at your open time, current latest version is ${curID}, input y if you still want to submit`,
+    });
+    if (y !== "y") {
+      return false;
+    }
+  }
   const resp = await got(site.api, {
     method: "POST",
     form: {
       action: "edit",
       title: title,
       text: text,
-      summary: summary || "from ewiv",
-      starttimestamp: time.toISOString(),
+      summary: summary || "from mcp",
       format: "json",
       token: token,
     },
@@ -164,14 +175,17 @@ export async function edit(
   const data = JSON.parse(resp.body);
   if (data.edit.result === "Success") {
     window.showInformationMessage("submit success");
+    return true;
   }
-  console.log(resp.body);
+  return false;
 }
-async function getToken(siteName: string): Promise<string> {
+async function getToken(
+  siteName: string,
+  title: string
+): Promise<[string, number]> {
   const site = Conf.get().getSite(siteName);
   if (!site) {
-    console.error("site not found: ", siteName);
-    return "";
+    return ["", NaN];
   }
   const resp = await got(site.api, {
     method: "GET",
@@ -180,8 +194,13 @@ async function getToken(siteName: string): Promise<string> {
       meta: "tokens",
       type: "csrf",
       format: "json",
+      titles: title,
+      prop: "revisions",
+      rvprop: "ids",
     },
     cookieJar: site.cookies,
   });
-  return JSON.parse(resp.body).query.tokens.csrftoken;
+  const data = JSON.parse(resp.body);
+  const id = Object.keys(data.query.pages)[0];
+  return [data.query.tokens.csrftoken, data.query.pages[id].revisions[0].revid];
 }

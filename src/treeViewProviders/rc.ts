@@ -41,7 +41,7 @@ export class Site extends TreeItem {
   constructor(siteConf: SiteConf) {
     super(siteConf.site, TreeItemCollapsibleState.Collapsed);
     this.siteConf = siteConf;
-    this.contextValue = "ewiv:rc_site";
+    this.contextValue = "mcp:rc_site";
   }
 }
 
@@ -52,7 +52,7 @@ export class ChangeItem extends TreeItem {
     super(`${data.title}`);
     this.command = {
       title: "open source",
-      command: "ewiv.open_source",
+      command: "mcp.open_source",
       arguments: [siteName, data.pageID, data.title, data.revID],
     };
     this.siteName = siteName;
@@ -63,6 +63,6 @@ ${data.time.toLocaleString()}
 ${data.title}
 ${data.comment}
 ${data.oldRevID}->${data.revID}`;
-    this.contextValue = "ewiv:rc_change";
+    this.contextValue = "mcp:rc_change";
   }
 }
