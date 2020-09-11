@@ -1,11 +1,13 @@
 import got from "got";
 import { Conf } from "./index";
 import { window } from "vscode";
+import { PageData } from "../fsProvider";
 interface PageRevision {
   pageID: string;
   title: string;
   oldID: string;
   content: string;
+  pageData: PageData;
 }
 export class PageRevisions {
   public user: string;
@@ -52,7 +54,7 @@ export async function getSource(
     action: "query",
     format: "json",
     prop: "revisions",
-    rvprop: "content|ids",
+    rvprop: "content|ids|contentmodel",
   };
   if (oldID) {
     params.revids = oldID;
@@ -83,6 +85,7 @@ export async function getSource(
     title: info.title,
     oldID: info.revisions[0].revid,
     content: info.revisions[0]["*"],
+    pageData: { contentModel: info.revisions[0].contentmodel },
   };
 }
 export async function getHistory(

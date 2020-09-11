@@ -6,13 +6,14 @@ import {
   Disposable,
   window,
   TextEditor,
+  StatusBarAlignment,
 } from "vscode";
 import { EwivFS, NODE } from "./fsProvider";
 import { ChangeItem, RcDataProvider, Site } from "./treeViewProviders/rc";
 import { HistoryProvider } from "./treeViewProviders/pageHistory";
 import { getSource, edit } from "./mw/Page";
-import { Conf, SiteConf } from "./mw";
-import { parseUri } from "./utils";
+import { Conf } from "./mw";
+import { parseUri, toPositive } from "./utils";
 export class Commands {
   arr: Disposable[] = [];
   fsInitialized = false;
@@ -21,9 +22,16 @@ export class Commands {
     this.ewivFS = new EwivFS();
     const rcTreeProvider = new RcDataProvider();
     const historyTreeProvider = new HistoryProvider();
+    const statusBarItem = window.createStatusBarItem(StatusBarAlignment.Left);
     window.onDidChangeActiveTextEditor((e: TextEditor | undefined) => {
       if (e?.document.uri.scheme === "ewivFS") {
+        const uri = e.document.uri;
         historyTreeProvider.refresh();
+        const { siteName, pageName } = parseUri(uri);
+        statusBarItem.text = `${siteName} • ${pageName} • ${
+          this.ewivFS.getPageData(uri).contentModel || "wikitext"
+        }`;
+        statusBarItem.show();
       }
     });
     this.arr = [
@@ -48,7 +56,23 @@ export class Commands {
         historyTreeProvider.refresh();
       }),
       commands.registerCommand("ewiv.edit", this.edit, this),
+      commands.registerCommand("ewiv.discard", this.discard, this),
       commands.registerCommand("ewiv.login", this.login, this),
+      commands.registerCommand("ewiv.open_in_browser", (uri: Uri) => {
+        const { siteName, pageName } = parseUri(uri);
+        const site = Conf.get().getSite(siteName);
+        if (!site) {
+          console.error("site not found: ", uri);
+          return;
+        }
+        env.openExternal(
+          Uri.parse(
+            `${site.index}?title=${pageName}${
+              uri.query ? "&oldid=" + toPositive(uri.query) : ""
+            }`
+          )
+        );
+      }),
     ];
   }
   private diffInBrowser(node: ChangeItem): void {
@@ -148,6 +172,7 @@ export class Commands {
       const content = source.content;
       uri = Uri.parse(`ewivFS:/${siteName}/${title}?${oldID}`);
       this.ewivFS?.createFile(uri, Buffer.from(content));
+      this.ewivFS?.setPageData(uri, source.pageData);
     }
     commands.executeCommand("vscode.open", uri);
   }
@@ -184,5 +209,8 @@ export class Commands {
       return;
     }
     await Conf.get().init(siteName);
+  }
+  private discard({ resourceUri }: { resourceUri: Uri }) {
+    this.ewivFS.rollBack(resourceUri);
   }
 }

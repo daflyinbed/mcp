@@ -20,7 +20,6 @@ export function activate(context: vscode.ExtensionContext): void {
     // Display a message box to the user
     vscode.window.showInformationMessage("Hello World from ewiv!");
   });
-
   context.subscriptions.push(disposable);
 }
 

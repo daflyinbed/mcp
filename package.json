@@ -65,7 +65,12 @@
       },
       {
         "command": "ewiv.diff_in_browser",
-        "title": "open in browser",
+        "title": "open compare in browser",
+        "icon": "$(compare-changes)"
+      },
+      {
+        "command": "ewiv.open_in_browser",
+        "title": "open page in browser",
         "icon": "$(remote-explorer)"
       },
       {
@@ -84,6 +89,11 @@
       {
         "command": "ewiv.login",
         "title": "ewiv.login"
+      },
+      {
+        "command":"ewiv.discard",
+        "title":"discard",
+        "icon":"$(discard)"
       }
     ],
     "viewsContainers": {
@@ -149,6 +159,18 @@
           "command": "ewiv.edit",
           "group": "inline",
           "when": "scmProvider == ewiv && scmResourceGroup == unsubmit"
+        },
+        {
+          "command": "ewiv.discard",
+          "group": "inline",
+          "when": "scmProvider ==ewiv && scmResourceGroup == unsubmit"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "ewiv.open_in_browser",
+          "when": "resourceScheme == ewivFS && !isInDiffEditor",
+          "group": "navigation"
         }
       ]
     }

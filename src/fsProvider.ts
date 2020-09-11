@@ -13,6 +13,9 @@ import {
 import * as path from "path";
 import { toNegative, toPositive } from "./utils";
 // import { PageRevisions } from "./mw/Page";
+export interface PageData {
+  contentModel?: string;
+}
 export class NODE implements FileStat {
   // type: FileType;
   ctime: number;
@@ -26,6 +29,7 @@ export class NODE implements FileStat {
   // 历史版本
   history: Map<number, NODE>;
   // 历史信息
+  pageData: PageData;
   // revisions?: PageRevisions[];
   constructor(name: string, type?: FileType) {
     // this.type = FileType.Directory;
@@ -38,6 +42,7 @@ export class NODE implements FileStat {
     this.children = new Map();
     this.history = new Map();
     this.data = Buffer.from("");
+    this.pageData = {};
   }
   public get type(): FileType {
     if (this.ctime === this.mtime && this.initType) {
@@ -117,11 +122,29 @@ export class EwivFS implements FileSystemProvider {
     const data = this._lookupFile(uri, false).data;
     return data;
   }
+  setPageData(uri: Uri, data: PageData): void {
+    const node = this._lookup(uri, true);
+    if (!node) {
+      console.error("node not found: ", uri);
+      return;
+    }
+    node.pageData.contentModel = data.contentModel;
+  }
+  getPageData(uri: Uri): PageData {
+    const node = this._lookup(uri, true);
+    if (!node?.pageData) {
+      return {};
+    }
+    return node.pageData;
+  }
   createFile(uri: Uri, content: Uint8Array): void {
     this._createDirectory(
       Uri.parse(`${uri.scheme}:${path.posix.dirname(uri.path)}`)
     );
-    this.writeFile(uri, content, { create: true, overwrite: false });
+    this.writeFile(uri, content, {
+      create: true,
+      overwrite: false,
+    });
   }
   writeFile(
     uri: Uri,
