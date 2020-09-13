@@ -152,17 +152,21 @@ export class Commands {
         return;
       }
     }
+    let source;
     let uri = Uri.parse(`mcpFS:/${siteName}/${title}`);
-    if (oldID) {
-      uri = uri.with({ query: oldID });
+    if (!oldID) {
+      source = await getSource(siteName, title, pageID, oldID);
+      oldID = source.oldID;
     }
-    if (!oldID || !this.mcpFS?.has(uri)) {
-      const source = await getSource(siteName, title, pageID, oldID);
+    uri = uri.with({ query: oldID });
+    if (!this.mcpFS?.has(uri)) {
+      if (!source) {
+        source = await getSource(siteName, title, pageID, oldID);
+      }
       pageID = source.pageID;
       title = source.title;
       oldID = source.oldID;
       const content = source.content;
-      uri = Uri.parse(`mcpFS:/${siteName}/${title}?${oldID}`);
       this.mcpFS?.createFile(uri, Buffer.from(content));
       this.mcpFS?.setPageData(uri, source.pageData);
     }

@@ -25,9 +25,9 @@
               "index": "https://fgo.wiki/index.php",
               "api": "https://fgo.wiki/api.php",
               "rcNamespace": "",
-              "rcType": "edit|new|external|categorize",
-              "name": "夕舞八弦@夕舞八弦bot",
-              "password": "16ak1cd5j7vib1khp7fmd213p02r76fb"
+              "rcType": "",
+              "name": "",
+              "password": ""
             }
           ]
         }
