@@ -6,7 +6,7 @@
 - 对比更改
 - 编辑页面
 
-\!\[feature\](images/feature.gif\)
+![feature](images/feature.gif)
 
 ## TODO
 - wikitext高亮 标签提示
