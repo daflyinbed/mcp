@@ -21,9 +21,9 @@
           "type": "array",
           "default": [
             {
-              "site": "Mooncell",
-              "index": "https://fgo.wiki/index.php",
-              "api": "https://fgo.wiki/api.php",
+              "site": "mediawiki",
+              "index": "https://www.mediawiki.org/w/index.php",
+              "api": "https://www.mediawiki.org/w/api.php",
               "rcNamespace": "",
               "rcType": "",
               "name": "",
